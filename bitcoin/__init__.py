@@ -53,6 +53,32 @@ class RegTestParams(bitcoin.core.CoreRegTestParams):
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
 
+class LitecoinMainParams(bitcoin.core.CoreMainParams):
+    MESSAGE_START = b'\xfb\xc0\xb6\xdb'
+    DEFAULT_PORT = 9333
+    RPC_PORT = 9332
+    DNS_SEEDS = (('litecoin.loshan.co.uk', 'seed-a.litecoin.loshan.co.uk'),
+                 ('thrasher.io', 'dnsseed.thrasher.io'),
+                 ('litecointools.com', 'dnsseed.litecointools.com'),
+                 ('litecoinpool.org', 'dnsseed.litecoinpool.org'),
+                 ('koin-project.com', 'dnsseed.koin-project.com'))
+    BASE58_PREFIXES = {'PUBKEY_ADDR':48,
+                       'SCRIPT_ADDR':5,
+                       'SECRET_KEY' :176}
+
+class LitecoinTestNetParams(bitcoin.core.CoreTestNetParams):
+    MESSAGE_START = b'\xfd\xd2\xc8\xf1'
+    DEFAULT_PORT = 19335
+    RPC_PORT = 19332
+    DNS_SEEDS = (('litecointools.com', 'testnet-seed.litecointools.com'),
+                 ('litecoin.loshan.co.uk', 'seed-b.litecoin.loshan.co.uk'),
+                 ('thrasher.io', 'dnsseed-testnet.thrasher.io'))
+    BASE58_PREFIXES = {'PUBKEY_ADDR':111,
+                       'SCRIPT_ADDR':196,
+                       'SECRET_KEY' :239}
+
+
+
 """Master global setting for what chain params we're using.
 
 However, don't set this directly, use SelectParams() instead so as to set the
@@ -76,5 +102,9 @@ def SelectParams(name):
         params = bitcoin.core.coreparams = TestNetParams()
     elif name == 'regtest':
         params = bitcoin.core.coreparams = RegTestParams()
+    elif name == 'ltc_mainnet':
+        params = bitcoin.core.coreparams = LitecoinMainParams()
+    elif name == 'ltc_testnet':
+        params = bitcoin.core.coreparams = LitecoinTestNetParams()
     else:
         raise ValueError('Unknown chain %r' % name)

@@ -768,9 +768,9 @@ def _SelectCoreParams(name):
     consensus-critical and general parameters are set properly.
     """
     global coreparams
-    if name == 'mainnet':
+    if name == 'mainnet' or name == 'ltc_mainnet':
         coreparams = CoreMainParams()
-    elif name == 'testnet':
+    elif name == 'testnet' or name == 'ltc_testnet':
         coreparams = CoreTestNetParams()
     elif name == 'regtest':
         coreparams = CoreRegTestParams()
