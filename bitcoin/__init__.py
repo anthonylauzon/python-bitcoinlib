@@ -27,7 +27,8 @@ class MainParams(bitcoin.core.CoreMainParams):
                  ('dashjr.org', 'dnsseed.bitcoin.dashjr.org'),
                  ('bitcoinstats.com', 'seed.bitcoinstats.com'),
                  ('xf2.org', 'bitseed.xf2.org'),
-                 ('bitcoin.jonasschnelli.ch', 'seed.bitcoin.jonasschnelli.ch'))
+                 ('bitcoin.jonasschnelli.ch', 'seed.bitcoin.jonasschnelli.ch'),
+                 ('btc.petertodd.org', "seed.btc.petertodd.org"))
     BASE58_PREFIXES = {'PUBKEY_ADDR':0,
                        'SCRIPT_ADDR':5,
                        'SECRET_KEY' :128}
