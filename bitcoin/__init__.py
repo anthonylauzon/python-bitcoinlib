@@ -55,6 +55,7 @@ class RegTestParams(bitcoin.core.CoreRegTestParams):
                        'SECRET_KEY' :239}
 
 class LitecoinMainParams(bitcoin.core.CoreMainParams):
+    NAME = 'ltc_mainnet'
     MESSAGE_START = b'\xfb\xc0\xb6\xdb'
     DEFAULT_PORT = 9333
     RPC_PORT = 9332
@@ -68,6 +69,7 @@ class LitecoinMainParams(bitcoin.core.CoreMainParams):
                        'SECRET_KEY' :176}
 
 class LitecoinTestNetParams(bitcoin.core.CoreTestNetParams):
+    NAME = 'ltc_testnet'
     MESSAGE_START = b'\xfd\xd2\xc8\xf1'
     DEFAULT_PORT = 19335
     RPC_PORT = 19332
@@ -109,3 +111,7 @@ def SelectParams(name):
         params = bitcoin.core.coreparams = LitecoinTestNetParams()
     else:
         raise ValueError('Unknown chain %r' % name)
+
+def get_params():
+    global params
+    return params
