@@ -1,10 +1,38 @@
 # python-bitcoinlib release notes
 
+## v0.10.2
+
+Note: this will be the last release of python-bitcoinlib with Python 2.7
+compatibility.
+
+* New RPC `generatetoaddress(self,numblocks,addr)`.
+* Fixed Python 2.7 incompatibility.
+* Various OpenSSL fixes, including a memory leak.
+
+
+## v0.10.1
+
+Identical in every way to v0.10.0, but re-uploaded under a new version to fix a
+PyPi issue.
+
+
+## v0.10.0
+
+Minor breaking change: RPC port for regtest updated to the new v0.16.0 default.
+
+Other changes:
+
+* Now looks for `.cookie` files in the datadir, if specified.
+* Authentication in a RPC `service_url` is now parsed.
+* Implemented bip-0037 version message.
+* `contrib/verify-commits/` removed for now due to breakage.
+
+
 ## v0.9.0
 
 Now supports segwit, which breaks the API in minor ways from v0.8.0. This
 version introduces lots of new API functionality related to this, such as the
-new `CScriptWitness`, `CTxInWitness`, `CTxWitness`, new sigwit-specific logic
+new `CScriptWitness`, `CTxInWitness`, `CTxWitness`, new segwit-specific logic
 in `SignatureHash()` etc.
 
 
