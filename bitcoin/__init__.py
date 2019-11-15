@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2018 The python-bitcoinlib developers
+# Copyright (C) 2012-2017 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -16,7 +16,7 @@ import bitcoin.core
 # Note that setup.py can break if __init__.py imports any external
 # dependencies, as these might not be installed when setup.py runs. In this
 # case __version__ could be moved to a separate version.py and imported here.
-__version__ = '0.11.0dev'
+__version__ = '0.9.1dev'
 
 class MainParams(bitcoin.core.CoreMainParams):
     MESSAGE_START = b'\xf9\xbe\xb4\xd9'
@@ -32,7 +32,6 @@ class MainParams(bitcoin.core.CoreMainParams):
     BASE58_PREFIXES = {'PUBKEY_ADDR':0,
                        'SCRIPT_ADDR':5,
                        'SECRET_KEY' :128}
-    BECH32_HRP = 'bc'
 
 class TestNetParams(bitcoin.core.CoreTestNetParams):
     MESSAGE_START = b'\x0b\x11\x09\x07'
@@ -45,17 +44,15 @@ class TestNetParams(bitcoin.core.CoreTestNetParams):
     BASE58_PREFIXES = {'PUBKEY_ADDR':111,
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
-    BECH32_HRP = 'tb'
 
 class RegTestParams(bitcoin.core.CoreRegTestParams):
     MESSAGE_START = b'\xfa\xbf\xb5\xda'
     DEFAULT_PORT = 18444
-    RPC_PORT = 18443
+    RPC_PORT = 18332
     DNS_SEEDS = ()
     BASE58_PREFIXES = {'PUBKEY_ADDR':111,
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
-    BECH32_HRP = 'bcrt'
 
 class LitecoinMainParams(bitcoin.core.CoreMainParams):
     NAME = 'ltc_mainnet'

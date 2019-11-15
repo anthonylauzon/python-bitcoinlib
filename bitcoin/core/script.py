@@ -678,23 +678,9 @@ class CScript(bytes):
                 _bord(self[22]) == OP_EQUAL)
 
     def is_witness_scriptpubkey(self):
-        """Returns true if this is a scriptpubkey signaling segregated witness data.
-
-        A witness program is any valid CScript that consists of a 1-byte push opcode
-        followed by a data push between 2 and 40 bytes.
-        """
-        size = len(self)
-        if size < 4 or size > 42:
-            return False
-
-        head = struct.unpack('<bb', self[:2])
-        if not CScriptOp(head[0]).is_small_int():
-            return False
-
-        if head[1] + 2 != size:
-            return False
-
-        return True
+        """Returns true if this is a scriptpubkey signaling segregated witness
+        data. """
+        return 3 <= len(self) <= 42 and CScriptOp(struct.unpack('<b',self[0:1])[0]).is_small_int()
 
     def witness_version(self):
         """Returns the witness version on [0,16]. """
@@ -705,7 +691,7 @@ class CScript(bytes):
         return len(self) == 22 and self[0:2] == b'\x00\x14'
 
     def is_witness_v0_nested_keyhash(self):
-        """Returns true if this is a scriptSig for V0 P2WPKH embedded in P2SH. """
+        """Returns true if this is a scriptpubkey for V0 P2WPKH embedded in P2SH. """
         return len(self) == 23 and self[0:3] == b'\x16\x00\x14'
 
     def is_witness_v0_scripthash(self):
@@ -713,8 +699,8 @@ class CScript(bytes):
         return len(self) == 34 and self[0:2] == b'\x00\x20'
 
     def is_witness_v0_nested_scripthash(self):
-        """Returns true if this is a scriptSig for V0 P2WSH embedded in P2SH. """
-        return len(self) == 35 and self[0:3] == b'\x22\x00\x20'
+        """Returns true if this is a scriptpubkey for V0 P2WSH embedded in P2SH. """
+        return len(self) == 23 and self[0:2] == b'\xa9\x14' and self[-1] == b'\x87'
 
     def is_push_only(self):
         """Test if the script only contains pushdata ops

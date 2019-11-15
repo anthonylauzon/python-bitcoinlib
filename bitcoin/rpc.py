@@ -1,5 +1,5 @@
 # Copyright (C) 2007 Jan-Klaas Kollhof
-# Copyright (C) 2011-2018 The python-bitcoinlib developers
+# Copyright (C) 2011-2015 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -123,8 +123,7 @@ class BaseProxy(object):
                  service_url=None,
                  service_port=None,
                  btc_conf_file=None,
-                 timeout=DEFAULT_HTTP_TIMEOUT,
-                 connection=None):
+                 timeout=DEFAULT_HTTP_TIMEOUT):
 
         # Create a dummy connection early on so if __init__() fails prior to
         # __conn being created __del__() can detect the condition and handle it
@@ -143,46 +142,39 @@ class BaseProxy(object):
                     btc_conf_file = os.path.expanduser('~/.bitcoin')
                 btc_conf_file = os.path.join(btc_conf_file, 'bitcoin.conf')
 
-            # Bitcoin Core accepts empty rpcuser, not specified in btc_conf_file
-            conf = {'rpcuser': ""}
-
             # Extract contents of bitcoin.conf to build service_url
-            try:
-                with open(btc_conf_file, 'r') as fd:
-                    for line in fd.readlines():
-                        if '#' in line:
-                            line = line[:line.index('#')]
-                        if '=' not in line:
-                            continue
-                        k, v = line.split('=', 1)
-                        conf[k.strip()] = v.strip()
+            with open(btc_conf_file, 'r') as fd:
+                # Bitcoin Core accepts empty rpcuser, not specified in btc_conf_file
+                conf = {'rpcuser': ""}
+                for line in fd.readlines():
+                    if '#' in line:
+                        line = line[:line.index('#')]
+                    if '=' not in line:
+                        continue
+                    k, v = line.split('=', 1)
+                    conf[k.strip()] = v.strip()
 
-            # Treat a missing bitcoin.conf as though it were empty
-            except FileNotFoundError:
-                pass
+                if service_port is None:
+                    service_port = bitcoin.params.RPC_PORT
+                conf['rpcport'] = int(conf.get('rpcport', service_port))
+                conf['rpchost'] = conf.get('rpcconnect', 'localhost')
 
-            if service_port is None:
-                service_port = bitcoin.params.RPC_PORT
-            conf['rpcport'] = int(conf.get('rpcport', service_port))
-            conf['rpchost'] = conf.get('rpcconnect', 'localhost')
+                service_url = ('%s://%s:%d' %
+                    ('http', conf['rpchost'], conf['rpcport']))
 
-            service_url = ('%s://%s:%d' %
-                ('http', conf['rpchost'], conf['rpcport']))
+                cookie_dir = os.path.dirname(btc_conf_file)
+                if bitcoin.params.NAME != "mainnet":
+                    cookie_dir = os.path.join(cookie_dir, bitcoin.params.NAME)
+                cookie_file = os.path.join(cookie_dir, ".cookie")
+                try:
+                    with open(cookie_file, 'r') as fd:
+                        authpair = fd.read()
+                except IOError as err:
+                    if 'rpcpassword' in conf:
+                        authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
 
-            cookie_dir = conf.get('datadir', os.path.dirname(btc_conf_file))
-            if bitcoin.params.NAME != "mainnet":
-                cookie_dir = os.path.join(cookie_dir, bitcoin.params.NAME)
-            cookie_file = os.path.join(cookie_dir, ".cookie")
-            try:
-                with open(cookie_file, 'r') as fd:
-                    authpair = fd.read()
-            except IOError as err:
-                if 'rpcpassword' in conf:
-                    authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
-
-                else:
-                    raise ValueError('Cookie file unusable (%s) and rpcpassword not specified in the configuration file: %r' % (err, btc_conf_file))
-
+                    else:
+                        raise ValueError('Cookie file unusable (%s) and rpcpassword not specified in the configuration file: %r' % (err, btc_conf_file))
         else:
             url = urlparse.urlparse(service_url)
             authpair = "%s:%s" % (url.username, url.password)
@@ -205,11 +197,8 @@ class BaseProxy(object):
             authpair = authpair.encode('utf8')
             self.__auth_header = b"Basic " + base64.b64encode(authpair)
 
-        if connection:
-            self.__conn = connection
-        else:
-            self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
-                                                 timeout=timeout)
+        self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
+                                             timeout=timeout)
 
     def _call(self, service_name, *args):
         self.__id_count += 1
@@ -231,13 +220,8 @@ class BaseProxy(object):
         self.__conn.request('POST', self.__url.path, postdata, headers)
 
         response = self._get_response()
-        err = response.get('error')
-        if err is not None:
-            if isinstance(err, dict):
-                raise JSONRPCError(
-                    {'code': err.get('code', -345),
-                     'message': err.get('message', 'error message not specified')})
-            raise JSONRPCError({'code': -344, 'message': str(err)})
+        if response['error'] is not None:
+            raise JSONRPCError(response['error'])
         elif 'result' not in response:
             raise JSONRPCError({
                 'code': -343, 'message': 'missing JSON-RPC result'})
@@ -265,15 +249,8 @@ class BaseProxy(object):
             raise JSONRPCError({
                 'code': -342, 'message': 'missing HTTP response from server'})
 
-        rdata = http_response.read().decode('utf8')
-        try:
-            return json.loads(rdata, parse_float=decimal.Decimal)
-        except Exception:
-            raise JSONRPCError({
-                'code': -342,
-                'message': ('non-JSON HTTP response with \'%i %s\' from server: \'%.20s%s\''
-                            % (http_response.status, http_response.reason,
-                               rdata, '...' if len(rdata) > 20 else ''))})
+        return json.loads(http_response.read().decode('utf8'),
+                          parse_float=decimal.Decimal)
 
     def close(self):
         if self.__conn is not None:
@@ -305,10 +282,7 @@ class RawProxy(BaseProxy):
 
     def __getattr__(self, name):
         if name.startswith('__') and name.endswith('__'):
-            # Prevent RPC calls for non-existing python internal attribute
-            # access. If someone tries to get an internal attribute
-            # of RawProxy instance, and the instance does not have this
-            # attribute, we do not want the bogus RPC call to happen.
+            # Python internal stuff
             raise AttributeError
 
         # Create a callable to do the actual call
@@ -326,7 +300,7 @@ class Proxy(BaseProxy):
     Unlike ``RawProxy``, data is passed as ``bitcoin.core`` objects or packed
     bytes, rather than JSON or hex strings. Not all methods are implemented
     yet; you can use ``call`` to access missing ones in a forward-compatible
-    way. Assumes Bitcoin Core version >= v0.16.0; older versions mostly work,
+    way. Assumes Bitcoin Core version >= v0.15.0; older versions mostly work,
     but there are a few incompatibilities.
     """
 
@@ -390,29 +364,13 @@ class Proxy(BaseProxy):
         return r
 
     def generate(self, numblocks):
-        """
-        DEPRECATED (will be removed in bitcoin-core v0.19)
-        
-        Mine blocks immediately (before the RPC call returns)
+        """Mine blocks immediately (before the RPC call returns)
 
         numblocks - How many blocks are generated immediately.
 
         Returns iterable of block hashes generated.
         """
         r = self._call('generate', numblocks)
-        return (lx(blk_hash) for blk_hash in r)
-    
-    def generatetoaddress(self, numblocks, addr):
-        """Mine blocks immediately (before the RPC call returns) and
-        allocate block reward to passed address. Replaces deprecated 
-        "generate(self,numblocks)" method.
-
-        numblocks - How many blocks are generated immediately.
-        addr     - Address to receive block reward (CBitcoinAddress instance)
-
-        Returns iterable of block hashes generated.
-        """
-        r = self._call('generatetoaddress', numblocks, str(addr))
         return (lx(blk_hash) for blk_hash in r)
 
     def getaccountaddress(self, account=None):
@@ -484,9 +442,6 @@ class Proxy(BaseProxy):
             raise TypeError('%s.getblock(): block_hash must be bytes; got %r instance' %
                     (self.__class__.__name__, block_hash.__class__))
         try:
-            # With this change ( https://github.com/bitcoin/bitcoin/commit/96c850c20913b191cff9f66fedbb68812b1a41ea#diff-a0c8f511d90e83aa9b5857e819ced344 ),
-            # bitcoin core's rpc takes 0/1/2 instead of true/false as the 2nd argument which specifies verbosity, since v0.15.0.
-            # The change above is backward-compatible so far; the old "false" is taken as the new "0".
             r = self._call('getblock', block_hash, False)
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getblock(): %s (%d)' %
@@ -715,18 +670,6 @@ class Proxy(BaseProxy):
         """
         hextx = hexlify(tx.serialize())
         r = self._call('signrawtransaction', hextx, *args)
-        r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
-        del r['hex']
-        return r
-
-    def signrawtransactionwithwallet(self, tx, *args):
-        """Sign inputs for transaction
-            bicoincore >= 0.17.x
-
-        FIXME: implement options
-        """
-        hextx = hexlify(tx.serialize())
-        r = self._call('signrawtransactionwithwallet', hextx, *args)
         r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
         del r['hex']
         return r
