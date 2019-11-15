@@ -583,10 +583,6 @@ class Proxy(BaseProxy):
 
         return r
 
-    def getaddressinfo(self, addr):
-        r = self._call('getaddressinfo', str(addr))
-        return r
-
     def getreceivedbyaddress(self, addr, minconf=1):
         """Return total amount received by given a (wallet) address
 
